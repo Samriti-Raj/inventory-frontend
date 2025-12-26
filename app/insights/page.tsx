@@ -35,35 +35,24 @@ export default function AIInsights() {
 
   const fetchData = async () => {
     try {
-      console.log("📥 Fetching inventory data...");
       const [productsRes, statsRes] = await Promise.all([
         fetch(`${API_BASE_URL}/api/products`),
         fetch(`${API_BASE_URL}/api/products/stats`)
       ]);
       
-      if (!productsRes.ok || !statsRes.ok) {
-        throw new Error("Failed to fetch data from backend");
-      }
-      
       const productsData = await productsRes.json();
       const statsData = await statsRes.json();
       
-      console.log(`✅ Loaded ${productsData.length} products`);
       setProducts(productsData);
       setStats(statsData);
     } catch (err: any) {
-      console.error("❌ Failed to fetch data:", err);
-      setError("Failed to load inventory data. Make sure backend is running.");
+      setError("Failed to load data");
     }
   };
 
   const generateInsights = async () => {
-    console.log("\n🤖 ===== GENERATING AI INSIGHTS =====");
-    console.log(`📦 Products available: ${products.length}`);
-    
     if (products.length === 0) {
-      setError("No products available to analyze");
-      console.log("❌ No products to analyze");
+      setError("No products to analyze");
       return;
     }
 
@@ -72,11 +61,7 @@ export default function AIInsights() {
     setInsights("");
 
     try {
-      const endpoint = `${API_BASE_URL}/api/ai/insights`;
-      console.log(`📤 Sending POST request to: ${endpoint}`);
-      console.log(`📦 Payload: ${products.length} products`);
-      
-      const response = await fetch(endpoint, {
+      const response = await fetch(`${API_BASE_URL}/api/ai/insights`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json"
@@ -84,42 +69,14 @@ export default function AIInsights() {
         body: JSON.stringify({ products })
       });
 
-      console.log(`📡 Response received - Status: ${response.status}`);
-
-      if (!response.ok) {
-        let errorMessage = `Request failed with status ${response.status}`;
-        
-        try {
-          const errorData = await response.json();
-          console.error("❌ Error response body:", errorData);
-          errorMessage = errorData.error || errorData.details || errorMessage;
-        } catch (e) {
-          const errorText = await response.text();
-          console.error("❌ Error response text:", errorText);
-          errorMessage = errorText || errorMessage;
-        }
-        
-        throw new Error(errorMessage);
-      }
-
       const data = await response.json();
-      console.log("✅ Success! Insights received");
-      console.log(`📝 Insights length: ${data.insights?.length || 0} characters`);
       
-      if (!data.insights) {
-        throw new Error("No insights returned from API");
+      if (data.insights) {
+        setInsights(data.insights);
       }
-      
-      setInsights(data.insights);
-      console.log("===== INSIGHTS GENERATION COMPLETE =====\n");
       
     } catch (err: any) {
-      console.error("❌ Error in generateInsights:", err);
-      console.error("Error type:", err.name);
-      console.error("Error message:", err.message);
-      
-      setError(err.message || "An unexpected error occurred while generating insights");
-      console.log("===== INSIGHTS GENERATION FAILED =====\n");
+      setError("Failed to generate insights");
     } finally {
       setLoading(false);
     }
@@ -136,7 +93,6 @@ export default function AIInsights() {
       margin: "0 auto",
       fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
     }}>
-      {/* Header */}
       <div style={{ marginBottom: 40 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
           <Sparkles size={32} color="#f55036" />
@@ -149,7 +105,6 @@ export default function AIInsights() {
         </p>
       </div>
 
-      {/* Stats Cards */}
       {stats && (
         <div style={{ 
           display: "grid", 
@@ -184,7 +139,6 @@ export default function AIInsights() {
         </div>
       )}
 
-      {/* Generate Button */}
       <button
         onClick={generateInsights}
         disabled={loading || products.length === 0}
@@ -218,10 +172,9 @@ export default function AIInsights() {
         }}
       >
         <BarChart3 size={20} />
-        {loading ? "Analyzing Your Inventory with Groq AI..." : "Generate AI Insights with Groq"}
+        {loading ? "Analyzing Your Inventory..." : "Generate AI Insights"}
       </button>
 
-      {/* Error Display */}
       {error && (
         <div style={{
           padding: 20,
@@ -229,30 +182,12 @@ export default function AIInsights() {
           color: "#991b1b",
           borderRadius: 12,
           marginBottom: 20,
-          display: "flex",
-          alignItems: "start",
-          gap: 10,
           border: "1px solid #fecaca"
         }}>
-          <AlertTriangle size={20} style={{ flexShrink: 0, marginTop: 2 }} />
-          <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 600, marginBottom: 8 }}>Error</div>
-            <div style={{ fontSize: 14, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
-              {error}
-            </div>
-            <div style={{ fontSize: 13, marginTop: 12, opacity: 0.8, background: "#fef2f2", padding: 10, borderRadius: 6 }}>
-              <strong>Troubleshooting:</strong>
-              <ul style={{ margin: "8px 0 0 0", paddingLeft: 20 }}>
-                <li>Check if backend is running on {API_BASE_URL}</li>
-                <li>Verify GROQ_API_KEY is in your .env file</li>
-                <li>Test Groq connection: <a href={`${API_BASE_URL}/api/test-groq`} target="_blank" style={{ color: "#991b1b", textDecoration: "underline" }}>Click here</a></li>
-              </ul>
-            </div>
-          </div>
+          {error}
         </div>
       )}
 
-      {/* Loading State */}
       {loading && (
         <div style={{
           padding: 40,
@@ -271,10 +206,7 @@ export default function AIInsights() {
             animation: "spin 1s linear infinite"
           }} />
           <p style={{ color: "#6b7280", margin: 0, fontWeight: 500 }}>
-            🤖 Groq AI (Llama 3.3 70B) is analyzing your inventory data...
-          </p>
-          <p style={{ color: "#9ca3af", margin: "8px 0 0 0", fontSize: 14 }}>
-            This usually takes 5-10 seconds
+            Analyzing your inventory data...
           </p>
           <style>{`
             @keyframes spin {
@@ -284,8 +216,6 @@ export default function AIInsights() {
           `}</style>
         </div>
       )}
-
-      {/* Insights Display */}
       {insights && !loading && (
         <div style={{
           padding: 35,
@@ -317,7 +247,7 @@ export default function AIInsights() {
                 AI Analysis & Recommendations
               </h2>
               <p style={{ margin: "4px 0 0 0", fontSize: 13, color: "#6b7280" }}>
-                Powered by Groq Llama 3.3 70B Versatile
+                Powered by Groq Llama 3.3 70B
               </p>
             </div>
           </div>
@@ -331,8 +261,6 @@ export default function AIInsights() {
           </div>
         </div>
       )}
-
-      {/* Empty State */}
       {products.length === 0 && !loading && (
         <div style={{
           padding: 60,
@@ -344,7 +272,7 @@ export default function AIInsights() {
           <Package size={48} color="#9ca3af" style={{ marginBottom: 16 }} />
           <h3 style={{ color: "#374151", marginBottom: 8 }}>No Products Found</h3>
           <p style={{ color: "#6b7280", margin: 0 }}>
-            Add some products to your inventory to get AI-powered insights and recommendations
+            Add some products to your inventory to get AI-powered insights
           </p>
         </div>
       )}
